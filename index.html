@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#081321"><meta name="description" content="Live Delta Exchange India market dashboard and trading risk coach">
+<link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/static/icon-192.png">
+<title>Delta Trading Coach</title>
+<style>
+:root{--bg:#081321;--panel:#111f32;--panel2:#1b2d45;--line:#2b405b;--txt:#eef5ff;--muted:#9eb0c8;--green:#2bd18f;--red:#ff6c7a;--amber:#f3bd58;--blue:#77b0ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
+header{padding:17px 15px 12px;background:linear-gradient(130deg,#173b5c,#101b2c);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:10px}.logo{width:38px;height:38px;border-radius:12px;background:#24568b;display:grid;place-items:center;font-size:21px}
+h1{font-size:18px;margin:0}.sub{font-size:11px;color:var(--muted);margin-top:3px}
+main{max-width:900px;margin:auto;padding:12px}.topline{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.pill{border-radius:20px;padding:6px 9px;background:#382d19;color:#ffe1a1;font-size:11px}.pill.ok{background:#10392f;color:#90f0c4}
+nav{display:flex;gap:7px;overflow:auto;padding:2px 0 10px;scrollbar-width:none}button{border:1px solid var(--line);background:var(--panel2);color:var(--txt);padding:10px 12px;border-radius:10px;font-weight:650;white-space:nowrap}
+button.active,.primary{background:#24588f;border-color:#477fba}.tab{display:none}.tab.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:10px;min-width:0}
+h2{font-size:15px;margin:0 0 11px}h3{font-size:11px;color:var(--muted);margin:0 0 5px}.value{font-size:22px;font-weight:780;overflow-wrap:anywhere}.muted{color:var(--muted);font-size:11px}.green{color:var(--green)}.red{color:var(--red)}.amber{color:var(--amber)}
+label{display:block;color:var(--muted);font-size:11px;margin:9px 0 5px}input,select{width:100%;background:#091727;border:1px solid var(--line);border-radius:9px;padding:11px;color:var(--txt);font:inherit;min-width:0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+#chart{height:250px;width:100%;display:block;background:#0a1728;border-radius:10px}
+.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:12px}td,th{padding:8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}td:first-child,th:first-child{text-align:left}
+.note{background:#342b1b;border-left:3px solid var(--amber);padding:10px;border-radius:8px;color:#ffe2a8;font-size:11px;line-height:1.5;margin:10px 0}
+.feedrow{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.install{display:none}.install.show{display:inline-block}
+footer{text-align:center;color:var(--muted);font-size:10px;padding:16px}
+@media(min-width:650px){main{padding:18px}.grid{grid-template-columns:repeat(4,minmax(0,1fr))}.value{font-size:25px}}
+</style></head>
+<body>
+<header><div class="brand"><div class="logo">Δ</div><div><h1>Delta Trading Coach</h1><div class="sub">Delta Exchange India · Live market analysis · Analysis only</div></div></div></header>
+<main>
+<div class="topline"><span id="connection" class="pill">Connecting to live feed…</span><span class="muted" id="time"></span><button id="installBtn" class="install primary" style="margin-left:auto">＋ Install App</button></div>
+<nav><button class="active" data-tab="home">Dashboard</button><button data-tab="watch">Watchlist</button><button data-tab="analysis">Analysis</button><button data-tab="risk">Risk</button><button data-tab="journal">Journal</button></nav>
+
+<section class="tab active" id="home">
+<div class="grid">
+<div class="card"><h3>Selected contract</h3><div class="value" id="price">—</div><div class="muted" id="selected">BTCUSD · waiting for feed</div></div>
+<div class="card"><h3>24h change</h3><div class="value" id="change">—</div><div class="muted">Rolling 24-hour change</div></div>
+<div class="card"><h3>Mark price</h3><div class="value" id="mark">—</div><div class="muted">Exchange mark price</div></div>
+<div class="card"><h3>Open interest</h3><div class="value" id="oi">—</div><div class="muted">Contracts (when available)</div></div>
+</div>
+<div class="card"><h2>Live price chart</h2><canvas id="chart"></canvas><div class="muted" id="chartNote">Choose a symbol and timeframe. Chart history loads from Delta; latest candles stream live.</div>
+<div class="row"><div><label>Timeframe</label><select id="resolution"><option>1m</option><option>3m</option><option selected>5m</option><option>15m</option><option>30m</option><option>1h</option><option>4h</option><option>1d</option></select></div><div><label>Contract symbol</label><input id="symbol" value="BTCUSD" autocapitalize="characters"></div></div>
+<div class="actions"><button class="primary" onclick="changeSymbol()">Load / Subscribe</button><button onclick="loadCandles()">Refresh candles</button></div></div>
+<div class="card"><h2>Live market context</h2><div id="signal" class="muted">Waiting for candle data.</div></div>
+<div class="card"><h2>Quick watchlist</h2><div id="watchlist" class="muted">Loading popular contracts…</div></div>
+</section>
+
+<section class="tab" id="watch">
+<div class="card"><h2>Find Delta contracts</h2><label>Search product symbol or underlying</label><input id="search" placeholder="BTC, ETH, SOL, BTC options…" oninput="renderProducts()">
+<div id="products" class="tablewrap" style="margin-top:10px"></div>
+<div class="note">Choose a live contract from the product list. Product availability, expiry, contract multiplier and margin rules can differ. Verify contract specifications on Delta before trading.</div></div>
+</section>
+
+<section class="tab" id="analysis">
+<div class="card"><h2>Technical analysis snapshot</h2><div id="analysisText" class="muted">Load a contract to analyze its candles.</div><div class="note">The app uses a transparent EMA/RSI-style technical checklist, not a machine-learning prediction. A bullish/bearish reading is not an order instruction. Confirm support/resistance, liquidity, spread, funding, volatility and your own risk before any decision.</div></div>
+<div class="card"><h2>Option metrics</h2><div id="greeks" class="muted">Greeks and IV appear when the selected live ticker is an option and Delta includes those fields in the ticker response.</div></div>
+</section>
+
+<section class="tab" id="risk">
+<div class="card"><h2>Position risk calculator</h2><div class="row"><div><label>Account capital (₹)</label><input id="capital" type="number" value="50000"></div><div><label>Risk per trade (%)</label><input id="riskPct" type="number" value="0.5" step="0.1"></div></div>
+<div class="row"><div><label>Entry price</label><input id="entry" type="number" step="any"></div><div><label>Stop price</label><input id="stop" type="number" step="any"></div></div>
+<div class="row"><div><label>Contract multiplier / unit value</label><input id="multiplier" type="number" value="1" step="any"></div><div><label>Estimated costs + slippage (₹)</label><input id="costs" type="number" value="0" step="any"></div></div>
+<button class="primary" onclick="calcRisk()">Calculate max size</button><div id="riskResult" class="muted" style="margin-top:12px">Enter entry and stop to calculate.</div>
+<div class="note">The multiplier is contract-specific. Do not assume one contract equals one coin. Check Delta product specifications. This calculation is only as accurate as your inputs and excludes liquidation/gap risk.</div></div>
+</section>
+
+<section class="tab" id="journal">
+<div class="card"><h2>Trading journal</h2><div class="row"><div><label>Contract / setup</label><input id="jsetup" placeholder="BTCUSD breakout"></div><div><label>Realized P&L (₹)</label><input id="jpnl" type="number"></div></div><label>Lesson / rule adherence</label><input id="jlesson" placeholder="Followed stop, no revenge trade…"><button class="primary" onclick="saveJournal()" style="margin-top:10px">Save entry</button><div id="journalList" style="margin-top:10px"></div></div>
+</section>
+<div class="note">Live feed is public market data; no API key is needed for these public channels. The app never asks for your Delta password, API secret, OTP, or trading permissions. It contains no order placement or account access. Market feed may disconnect or be delayed by network/exchange conditions.</div>
+<footer>Delta Trading Coach · Add to Home Screen for an app-like full-screen experience</footer>
+</main>
+<script>
+let socket=null, products=[], tickerBySymbol={}, current='BTCUSD', candles=[], pendingInstall=null;
+const $=id=>document.getElementById(id);
+function switchTab(id){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('active',e.id===id));document.querySelectorAll('nav button').forEach(e=>e.classList.toggle('active',e.dataset.tab===id))}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+function n(v){return v==null||v===''?'—':Number(v).toLocaleString('en-IN',{maximumFractionDigits:4})}
+function money(v){return '₹'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:2})}
+function setStatus(ok,msg){$('connection').className='pill '+(ok?'ok':'');$('connection').textContent=ok?'● Live feed connected':'● '+(msg||'Feed disconnected')}
+function sendSubscribe(symbol,res){if(socket?.readyState===WebSocket.OPEN){socket.send(JSON.stringify({type:'subscribe',payload:{channels:[{name:'ticker',symbols:[symbol]},{name:'candlestick_'+res,symbols:[symbol]}]}}));}}
+function connect(){
+ socket=new WebSocket('wss://public-socket.india.delta.exchange');
+ socket.onopen=()=>{setStatus(true,'Connected');socket.send(JSON.stringify({type:'enable_heartbeat'}));sendSubscribe(current,$('resolution').value)};
+ socket.onmessage=e=>{let d;try{d=JSON.parse(e.data)}catch{return}
+ if(d.type==='ticker'){let items=d.d||[];items.forEach(t=>{tickerBySymbol[t.s]=t;if(t.s===current)renderTicker(t)});}
+ if(d.type?.startsWith('candlestick_')&&d.sy===current){updateCandle(d)}
+ if(d.type==='heartbeat')setStatus(true,'Connected');
+ };
+ socket.onclose=()=>{setStatus(false,'Reconnecting…');setTimeout(connect,3000)};
+ socket.onerror=()=>setStatus(false,'Socket error');
+}
+function renderTicker(t){
+ const price=t.d?.[0]?.last_price ?? t.last_price ?? t.d?.[0]?.m ?? t.mark_price;
+ $('price').textContent=price!=null?n(price):'—';$('selected').textContent=current+' · live ticker';
+ let pct=t.d?.[0]?.change_24h ?? t.change_24h ?? t.mark_change_24h;
+ $('change').textContent=pct!=null?n(pct)+'%':'—';$('change').className='value '+(Number(pct)>=0?'green':'red');
+ $('mark').textContent=t.d?.[0]?.m?n(t.d[0].m):n(t.mark_price);
+ $('oi').textContent=t.d?.[0]?.oi?.[0]?n(t.d[0].oi[0]):n(t.oi);
+ const q=t.d?.[0]?.qiv,g=t.d?.[0]?.g;
+ $('greeks').textContent=g?`Delta ${g[0]} · Gamma ${g[1]} · Theta ${g[3]} · Vega ${g[4]} · IV ${q?.[2]??'—'}`:'Greeks/IV not supplied for this contract or ticker payload.';
+}
+function updateCandle(d){
+ $('price').textContent=n(d.c);$('selected').textContent=current+' · live candle close';
+ const c={time:Math.floor(Number(d.ts)/1e6),open:+d.o,high:+d.h,low:+d.l,close:+d.c,volume:+d.v||0};
+ let last=candles[candles.length-1];if(last&&last.time===c.time)candles[candles.length-1]=c;else candles.push(c);
+ if(candles.length>300)candles.shift();drawChart();analyze();
+}
+async function loadCandles(){
+ const symbol=$('symbol').value.trim().toUpperCase()||current,res=$('resolution').value;
+ try{const end=Math.floor(Date.now()/1000),minutes={'1m':1,'3m':3,'5m':5,'15m':15,'30m':30,'1h':60,'4h':240,'1d':1440}[res]||5,start=end-minutes*60*160;
+ const r=await fetch(`/api/candles?symbol=${encodeURIComponent(symbol)}&resolution=${res}&start=${start}&end=${end}`);const d=await r.json();if(!r.ok)throw Error(d.detail||'Could not load candles');
+ const arr=d.result||d.candles||[];candles=arr.map(x=>({time:Number(x.time||x.t),open:+(x.open??x.o),high:+(x.high??x.h),low:+(x.low??x.l),close:+(x.close??x.c),volume:+(x.volume??x.v??0)})).filter(x=>Number.isFinite(x.close)).slice(-300);
+ $('chartNote').textContent=`Loaded ${candles.length} historical candles from Delta; live updates follow on the WebSocket.`;
+ drawChart();analyze();
+ }catch(e){$('chartNote').textContent='Candle history unavailable: '+e.message+'. Live ticker can still work.'}
+}
+function changeSymbol(){current=$('symbol').value.trim().toUpperCase();candles=[];drawChart();sendSubscribe(current,$('resolution').value);loadCandles();$('selected').textContent=current+' · subscribing…'}
+$('resolution').onchange=()=>{candles=[];sendSubscribe(current,$('resolution').value);loadCandles()};
+function drawChart(){
+ const c=$('chart'),ctx=c.getContext('2d'),w=c.clientWidth||320,h=250,dpr=devicePixelRatio||1;c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
+ if(!candles.length){ctx.fillStyle='#9eb0c8';ctx.fillText('Loading candle history…',12,22);return}
+ const min=Math.min(...candles.map(x=>x.low)),max=Math.max(...candles.map(x=>x.high)),pad=(max-min)*.08||1,lo=min-pad,hi=max+pad,plotH=h-24,step=w/candles.length;
+ ctx.strokeStyle='#263c56';for(let i=1;i<5;i++){ctx.beginPath();ctx.moveTo(0,i*h/5);ctx.lineTo(w,i*h/5);ctx.stroke()}
+ candles.forEach((x,i)=>{const cx=i*step+step/2,yo=plotH-(x.open-lo)/(hi-lo)*plotH,yc=plotH-(x.close-lo)/(hi-lo)*plotH,yh=plotH-(x.high-lo)/(hi-lo)*plotH,yl=plotH-(x.low-lo)/(hi-lo)*plotH;ctx.strokeStyle=x.close>=x.open?'#2bd18f':'#ff6c7a';ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.moveTo(cx,yh);ctx.lineTo(cx,yl);ctx.stroke();let bh=Math.max(1,Math.abs(yc-yo));ctx.fillRect(cx-step*.28,Math.min(yo,yc),Math.max(2,step*.56),bh)});
+ ctx.fillStyle='#dceaff';ctx.fillText(n(hi),5,12);ctx.fillText(n(lo),5,h-5);
+}
+function ema(a,p){let k=2/(p+1),v=a[0];for(let i=1;i<a.length;i++)v=a[i]*k+v*(1-k);return v}
+function analyze(){
+ if(candles.length<25){$('signal').textContent='Need at least 25 candles before a basic trend read.';$('analysisText').textContent=$('signal').textContent;return}
+ const closes=candles.map(x=>x.close),e9=ema(closes.slice(-60),9),e21=ema(closes.slice(-80),21),last=closes.at(-1),prev=closes.at(-2),trend=e9>e21?'Bullish':'Bearish',body=Math.abs(last-prev);
+ let view=e9>e21?'BULLISH TREND BIAS':'BEARISH TREND BIAS';if(Math.abs(e9-e21)/last<.0005)view='NEUTRAL / RANGE — WAIT';
+ let reason=`EMA 9: ${n(e9)} · EMA 21: ${n(e21)} · latest close: ${n(last)}. Recent candle move: ${n(body)}.`;
+ $('signal').innerHTML=`<b class="${view.startsWith('BULL')?'green':view.startsWith('BEAR')?'red':'amber'}">${view}</b><br>${reason}<br><span class="muted">Wait for price-action confirmation and define invalidation before considering any trade.</span>`;
+ $('analysisText').innerHTML=`<b>${view}</b><br>${reason}<br>Candles analyzed: ${candles.length}. This is a simple moving-average context only. It does not assess funding, liquidation distance, fees, order-book depth or event risk.`;
+}
+async function getProducts(){
+ try{let r=await fetch('/api/products?contract_types=perpetual_futures,call_options,put_options&states=live&page_size=200'),d=await r.json();if(!r.ok)throw Error(d.detail);products=d.result||[];renderProducts();$('watchlist').innerHTML=products.filter(p=>p.contract_type==='perpetual_futures').slice(0,8).map(p=>`<div class="feedrow"><b>${esc(p.symbol)}</b><button class="small" onclick="selectProduct('${esc(p.symbol)}')">Open</button></div>`).join('')||'No live perpetual contracts returned.'}
+ catch(e){$('products').textContent='Could not load products: '+e.message;$('watchlist').textContent='Product list unavailable.'}
+}
+function renderProducts(){let q=($('search').value||'').toUpperCase(),arr=products.filter(p=>(p.symbol||'').toUpperCase().includes(q)||(p.underlying_asset?.symbol||'').toUpperCase().includes(q)).slice(0,100);$('products').innerHTML=arr.length?'<table><thead><tr><th>Symbol</th><th>Type</th><th>Expiry</th><th></th></tr></thead><tbody>'+arr.map(p=>`<tr><td>${esc(p.symbol)}</td><td>${esc(p.contract_type||'')}</td><td>${esc(p.expiry_date||'—')}</td><td><button class="small" onclick="selectProduct('${esc(p.symbol)}')">Select</button></td></tr>`).join('')+'</tbody></table>':'<p class="muted">No matching live products.</p>'}
+function selectProduct(s){current=s;$('symbol').value=s;switchTab('home');changeSymbol()}
+function calcRisk(){let cap=+$('capital').value,pct=+$('riskPct').value,en=+$('entry').value,st=+$('stop').value,m=+$('multiplier').value||1,c=+$('costs').value||0,b=cap*pct/100,per=Math.abs(en-st)*m+c,size=per>0?Math.floor(b/per):0;$('riskResult').innerHTML=`Risk budget: <b>${money(b)}</b><br>Risk per contract/unit: ${money(per)}<br>Maximum size: <b>${size}</b><br>Planned stop risk: ${money(size*per)}<br><b class="${size?'green':'red'}">${size?'Size calculated — verify contract multiplier and liquidation risk.':'NO TRADE — invalid inputs or risk budget too small.'}</b>`}
+let journal=JSON.parse(localStorage.getItem('deltaCoachJournal')||'[]');
+function saveJournal(){let setup=$('jsetup').value;if(!setup){alert('Enter contract / setup');return}journal.unshift({date:new Date().toLocaleString('en-IN'),setup,pnl:+$('jpnl').value||0,lesson:$('jlesson').value});localStorage.setItem('deltaCoachJournal',JSON.stringify(journal));renderJournal();$('jsetup').value='';$('jpnl').value='';$('jlesson').value=''}
+function renderJournal(){$('journalList').innerHTML=journal.map(x=>`<div class="feedrow"><div><b>${esc(x.setup)}</b><div class="muted">${esc(x.date)} · ${esc(x.lesson||'')}</div></div><b class="${x.pnl>=0?'green':'red'}">${money(x.pnl)}</b></div>`).join('')||'<p class="muted">No trades recorded.</p>'}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();pendingInstall=e;$('installBtn').classList.add('show')});
+$('installBtn').onclick=async()=>{if(pendingInstall){pendingInstall.prompt();await pendingInstall.userChoice;pendingInstall=null;$('installBtn').classList.remove('show')}else alert('In Chrome: tap ⋮ menu → Add to Home screen / Install app.')}
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+setInterval(()=>$('time').textContent=new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}),1000);
+renderJournal();connect();getProducts();loadCandles();
+</script></body></html>
